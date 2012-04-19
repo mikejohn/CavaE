@@ -1,0 +1,31 @@
+<!DOCTYPE>
+<html>
+<head>
+<title>DrawARect</title>
+<script type="text/javascript" src="../core/CavaE.js"></script>
+<script>
+function init () {
+	var stage = new CavaE.Stage();
+	var rect = new CavaE.Widget;
+	rect.setAnchor(50,50);
+	rect.addDrawFunc(function (ctx,self) {
+		ctx.fillStyle = 'blue';
+		ctx.fillRect(self.anchor.x,self.anchor.y,120,80);
+		ctx.strokeStyle = 'red';
+		ctx.lineWidth = 5;
+		ctx.beginPath();
+		ctx.moveTo(self.anchor.x,self.anchor.y);
+		ctx.lineTo(self.anchor.x+120,self.anchor.y);
+		ctx.lineTo(self.anchor.x+120,self.anchor.y+80)
+		ctx.lineTo(self.anchor.x,self.anchor.y+80)
+		ctx.closePath();
+		ctx.stroke();
+	});
+	stage.addWidget(rect);
+	stage.init();
+}
+</script>
+</head>
+<body onload="init();" >
+</body>
+</html>
