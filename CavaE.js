@@ -103,6 +103,15 @@ CavaE.GlobalObjet = {
 		 */
 		isFunction : function(obj) {
 			return (typeof obj == 'function') && obj.constructor == Function;
+		},
+		/**
+		 * isString 
+		 * 判断对象是否是字符串
+		 * @param {object} obj
+		 * @returns {boolean}
+		 */
+		isString : function(obj) {
+			return (typeof obj == 'string') && obj.constructor == String;
 		}
 	},
 	/**
@@ -160,6 +169,7 @@ CavaE.GlobalObjet = {
 		MOUSEDROP : 'mousedrop',//	鼠标拖拽释放
 		MOUSEDROPTARGETACTIVE : 'mousedroptargetactive',// 激活释放目标
 		MOUSEDROPTARGETNEGTIVE : 'mousedroptargetnegtive',// 去激活释放目标
+		MOUSETOOLTIP : 'mousetooptip',//显示鼠标提示信息
 		KEYUP : 'keyup',//	键盘抬起
 		KEYDOWN : 'keydown',//	键盘按下	
 		KEYPRESS : 'keypress'//	键盘按住
@@ -179,8 +189,14 @@ CavaE.GlobalObjet = {
 	//	双击事件窗口
 	dblClickWindow : 400,
 	//	debug模式开关
-	debug : true
+	debug : false
 };
+window.requestAnimFrame = (function(callback) {
+    return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame ||
+    function(callback) {
+        window.setTimeout(callback, 1000 / 60);
+    };
+})();
 /////////////////////////////////////////////////////////////////
 //					事件响应器
 /////////////////////////////////////////////////////////////////
@@ -720,6 +736,22 @@ CavaE.Widget.prototype = {
 								this.DragAndDropActions.dragStart);
 						this.on('MOUSEDROP._DEFAULT',
 								this.DragAndDropActions.drop);
+					} else if (baseEvent == 'MOUSETOOLTIP') {
+						this.tooltip = action; //TOOLTIP时用来显示文字
+						var that = this;
+						this.on('MOUSEIN._TOOLTIP', function (event) {
+							that.stage.tooltip.text = that.tooltip;
+							that.stage.tooltip.move(event.x,event.y);
+							that.stage.tooltip.show();							
+						});
+						this.on('MOUSEOVER._TOOLTIP', function(event) {
+							that.stage.tooltip.move(event.x,event.y);
+							that.stage.activeLayer.redraw();
+						});
+						this.on('MOUSEOUT._TOOLTIP',function(){
+							that.stage.tooltip.hide();
+							that.stage.activeLayer.redraw();
+						});
 					}
 					break;
 				}
@@ -740,6 +772,13 @@ CavaE.Widget.prototype = {
 			var type = types[n];
 			var parts = type.split('.');
 			var baseEvent = parts[0];
+			if (baseEvent == 'MOUSETOOLTIP') {
+				this.tooltip = undefined;
+				this.off('MOUSEIN._TOOLTIP');
+				this.off('MOUSEOVER._TOOLTIP');
+				this.off('MOUSEOUT._TOOLTIP');
+				continue;
+			}
 			if (this._actions[baseEvent] && parts.length > 1) {
 				var name = parts[1];
 				for ( var i = 0; i < this._actions[baseEvent].length; i++) {
@@ -946,6 +985,13 @@ CavaE.Widget.prototype = {
 		}
 	},
 	/**
+	 * 移动Widget锚点
+	 */
+	move : function (x,y) {
+		this.anchor.x = x;
+		this.anchor.y = y;
+	},
+	/**
 	 * moveBottom
 	 * 将页面元素在其父中的绘制顺序后移最后绘制
 	 */
@@ -1003,10 +1049,10 @@ CavaE.Widget.prototype = {
 			ctx.moveTo(this.eventBoundingBox[0].x, this.eventBoundingBox[0].y);
 			for ( var i = 1, len = this.eventBoundingBox.length; i < len; i++) {
 				if(isScale) {
-					ctx.lineTo(this.eventBoundingBox[0].x/this.displayOptions.scale.x
-							,this.eventBoundingBox[0].y/this.displayOptions.scale.y);
+					ctx.lineTo(this.eventBoundingBox[i].x/this.displayOptions.scale.x
+							,this.eventBoundingBox[i].y/this.displayOptions.scale.y);
 				} else {
-					ctx.lineTo(this.eventBoundingBox[0].x,this.eventBoundingBox[0].y);
+					ctx.lineTo(this.eventBoundingBox[i].x,this.eventBoundingBox[i].y);
 				}
 			}
 			ctx.closePath();
@@ -1432,6 +1478,8 @@ CavaE.Stage = function(attrs) {
 	shell = null;
 	// 动画层是否继续播放
 	this.playing = false;
+	// TOOLTIP
+	this.tooltip = new CavaE.ToolTip(this);
 };
 CavaE.Stage.prototype = {
 	/**
@@ -1493,11 +1541,11 @@ CavaE.Stage.prototype = {
 	_initialize : function() {
 		this.redrawFixedLayer();
 		this.redrawNegtiveLayer();
-	},
+	},	
 	/**
 	 * 动画层按帧率刷新
 	 */
-	_animate : function() {
+	_animate : function() {		
 		var update = function(obj) {
 			var obj = obj;
 			return function() {
@@ -1506,13 +1554,13 @@ CavaE.Stage.prototype = {
 					obj.animationLayer.context.clearRect(0, 0, obj.attrs.width,
 							obj.attrs.height);
 					for ( var i = 0, len = children.length; i < len; i++) {
-						children[i].draw(obj.animationLayer.context);
+						children[i].draw(obj.animationLayer.context,obj);
 					}
-					setTimeout(update, obj.attrs.framing);
+					window.requestAnimFrame(update, obj.attrs.framing);
 				}
 			};
 		}(this);
-		setTimeout(update, this.attrs.framing);
+		window.requestAnimFrame(update, this.attrs.framing);
 	},
 	/**
 	 * 忽略键盘事件
@@ -1604,3 +1652,40 @@ CavaE.Layer.prototype = {
 	}
 };
 CavaE.GlobalObjet.Func.Extends(CavaE.Layer, CavaE.Container);
+/////////////////////////////////////////////////////////////////
+//				核心功能扩展
+/////////////////////////////////////////////////////////////////
+/**
+ *	ToolTip
+ *	@constructor
+ *	提示工具,当鼠标悬停时显示提示信息,当鼠标移出时隐藏提示信息	
+ */
+CavaE.ToolTip = function (stage){
+	CavaE.Widget.apply(this, []);
+	this._parent = stage;
+	this.stage = stage;
+};
+CavaE.ToolTip.prototype = {
+	show : function (x,y) {
+		this.move(x,y);
+		this._lastParent = this._parent;
+		this._parent._remove(this);
+		this.stage.activeLayer._add(this);
+		this.layer = 'active';
+		this.displaying = true;
+		this.stage.activeLayer.redraw();
+		this.stage.negtiveLayer.redraw();
+	},
+	hide : function (newParent) {
+		this.displaying = false;
+		this._parent._remove(this);
+		if (newParent === undefined) {
+			this._lastParent._add(this);
+		} else {
+			newParent._add(this);
+		}
+		this.layer = 'negtive';
+		this.stage.activeLayer.redraw();		
+	}	
+};
+CavaE.GlobalObjet.Func.Extends(CavaE.ToolTip, CavaE.Widget);
