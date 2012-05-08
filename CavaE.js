@@ -15,7 +15,6 @@
  * 移动锚点、以锚点为中心旋转、放大缩小、改变透明度
  *  
  */
-
 /////////////////////////////////////////////////////////////////
 // 						CavaE 名字空间
 /////////////////////////////////////////////////////////////////
@@ -23,7 +22,7 @@ var CavaE = {};
 /////////////////////////////////////////////////////////////////
 //						全局变量
 /////////////////////////////////////////////////////////////////
-CavaE.GlobalObjet = {
+CavaE.GlobalObject = {
 	/**
 	 * 公共方法
 	 */
@@ -35,7 +34,8 @@ CavaE.GlobalObjet = {
 		 * @param {object} obj2 对象字面量
 		 */
 		mantle : function(obj1, obj2) {
-			for ( var key in obj1) {
+			var key;
+			for ( key in obj1) {
 				if (obj2[key] !== undefined) {
 					obj1[key] = obj2[key];
 				}
@@ -112,6 +112,41 @@ CavaE.GlobalObjet = {
 		 */
 		isString : function(obj) {
 			return (typeof obj == 'string') && obj.constructor == String;
+		},
+		/**
+		 * drawText
+		 * 在画布上显示文字,自动换行
+		 * @param {ctx} canvas.context
+		 * @param {CavaE.TextWarp}
+		 */
+		drawText : function (ctx,self) {
+			ctx.save();		
+			self._shadow(ctx);
+			ctx.font = self._font();
+			var x = self.anchor.x;
+			var y = self.anchor.y;
+			var text = self.text;
+			var line = self.wrapOptions.CHIndent?'    ':'';		
+			for (var n = 0; n < text.length; n++) {
+				if(text[n] == '\n' && self.wrapOptions.AutoEnter) {
+					ctx.fillText(line, x, y);
+					line = self.wrapOptions.CHIndent?'    ':'';
+					y += Number(self.lineHight);
+				} else {
+			        var testLine = line + text[n];
+			        var metrics = ctx.measureText(testLine);
+			        var testWidth = metrics.width;
+			        if (testWidth > self.maxWidth ) {
+			        	ctx.fillText(line, x, y);
+			            line = self.text[n];	            
+			            y += Number(self.lineHight);	           
+			        } else {
+			            line = testLine;
+			        }
+				}
+		    }
+			ctx.fillText(line, x, y);
+			ctx.restore();
 		}
 	},
 	/**
@@ -226,7 +261,7 @@ CavaE._Event.prototype = {
 	 */
 	registerEventObject : function(eventType, eventObject) {
 		var rightType = true;
-		var eventTypes = CavaE.GlobalObjet.EventTypes;		
+		var eventTypes = CavaE.GlobalObject.EventTypes;		
 		if (this._eventObjects[eventType] === undefined) {
 			this._eventObjects[eventType] = [];
 		}
@@ -240,7 +275,7 @@ CavaE._Event.prototype = {
 	 */
 	unregisterEventObject : function(eventType, eventObject) {
 		var rightType = true;
-		var eventTypes = CavaE.GlobalObjet.EventTypes;
+		var eventTypes = CavaE.GlobalObject.EventTypes;
 		var eventObjects = this._eventObjects[eventType];
 		if (eventObjects === undefined) {
 			return;
@@ -267,8 +302,8 @@ CavaE._Event.prototype = {
 		if (this._KeyBoardListening) {
 			//封装键盘事件
 			var event = {
-				keyCode : CavaE.GlobalObjet.EventKey.code,
-				keyValue : CavaE.GlobalObjet.EventKey.value
+				keyCode : CavaE.GlobalObject.EventKey.code,
+				keyValue : CavaE.GlobalObject.EventKey.value
 			};
 			var eventObjects = this._eventObjects[eventType].length;
 			for ( var i = 0, len = eventObjects; i < len; i++) {
@@ -285,24 +320,24 @@ CavaE._Event.prototype = {
 		var templistenCanvasElement = document.getElementById(this._stage.eventLayer.ID);
 		var that = this;
 		// 监听鼠标移动事件		
-		CavaE.GlobalObjet.DOMTools
+		CavaE.GlobalObject.DOMTools
 				.addListener(
 						templistenCanvasElement,
-						CavaE.GlobalObjet.EventTypes.MOUSEMOVE,
+						CavaE.GlobalObject.EventTypes.MOUSEMOVE,
 						function(event) {							
-							if (CavaE.GlobalObjet.MousePos !== undefined) {
-								CavaE.GlobalObjet.LastMousePos = CavaE.GlobalObjet.MousePos;
+							if (CavaE.GlobalObject.MousePos !== undefined) {
+								CavaE.GlobalObject.LastMousePos = CavaE.GlobalObject.MousePos;
 							}
-							CavaE.GlobalObjet.MousePos = {
-								'x' : event.pageX,
-								'y' : event.pageY,
+							CavaE.GlobalObject.MousePos = {
+								'x' : event.pageX - that._stage.attrs.x,
+								'y' : event.pageY - that._stage.attrs.y,
 								'z' : event.timeStamp
 							};
-							if (CavaE.GlobalObjet.LastMousePos !== undefined) {
-								var DValueX = CavaE.GlobalObjet.MousePos.x
-										- CavaE.GlobalObjet.LastMousePos.x;
-								var DValueY = CavaE.GlobalObjet.MousePos.y
-										- CavaE.GlobalObjet.LastMousePos.y;
+							if (CavaE.GlobalObject.LastMousePos !== undefined) {
+								var DValueX = CavaE.GlobalObject.MousePos.x
+										- CavaE.GlobalObject.LastMousePos.x;
+								var DValueY = CavaE.GlobalObject.MousePos.y
+										- CavaE.GlobalObject.LastMousePos.y;
 								if (DValueX == 0 && DValueY == 0) {
 									return;
 								}
@@ -310,55 +345,55 @@ CavaE._Event.prototype = {
 							that._mousemoveHandler();
 						});
 		// 监听鼠标按下事件
-		CavaE.GlobalObjet.DOMTools.addListener(templistenCanvasElement,
-				CavaE.GlobalObjet.EventTypes.MOUSEDOWN, function(event) {
-					CavaE.GlobalObjet.MousePos = {
-						'x' : event.pageX,
-						'y' : event.pageY,
+		CavaE.GlobalObject.DOMTools.addListener(templistenCanvasElement,
+				CavaE.GlobalObject.EventTypes.MOUSEDOWN, function(event) {
+					CavaE.GlobalObject.MousePos = {
+						'x' : event.pageX - that._stage.attrs.x,
+						'y' : event.pageY - that._stage.attrs.y,
 						'z' : event.timeStamp
 					};
 					that._mousedownHandler();
 				});
 		// 监听鼠标抬起事件
-		CavaE.GlobalObjet.DOMTools.addListener(templistenCanvasElement,
-				CavaE.GlobalObjet.EventTypes.MOUSEUP, function(event) {
-					CavaE.GlobalObjet.MousePos = {
-						'x' : event.pageX,
-						'y' : event.pageY,
+		CavaE.GlobalObject.DOMTools.addListener(templistenCanvasElement,
+				CavaE.GlobalObject.EventTypes.MOUSEUP, function(event) {
+					CavaE.GlobalObject.MousePos = {
+						'x' : event.pageX - that._stage.attrs.x,
+						'y' : event.pageY - that._stage.attrs.y,
 						'z' : event.timeStamp
 					};
 					that._mouseupHandler();
 				});
 		// 监听键盘按下事件
-		CavaE.GlobalObjet.DOMTools.addListener(document.body,
-				CavaE.GlobalObjet.EventTypes.KEYDOWN, function(event) {
+		CavaE.GlobalObject.DOMTools.addListener(document.body,
+				CavaE.GlobalObject.EventTypes.KEYDOWN, function(event) {
 					if (!that._keystart) {
 						return;
 					}
 					that._keystart = false;
-					CavaE.GlobalObjet.EventKey = {
+					CavaE.GlobalObject.EventKey = {
 						code : event.keyCode,
 						value : String.fromCharCode(event.keyCode)
 					};
 					that._executeKeyActions('KEYDOWN');
 				});
 		// 监听键盘抬起事件
-		CavaE.GlobalObjet.DOMTools.addListener(document.body,
-				CavaE.GlobalObjet.EventTypes.KEYUP, function(event) {
+		CavaE.GlobalObject.DOMTools.addListener(document.body,
+				CavaE.GlobalObject.EventTypes.KEYUP, function(event) {
 					that._keystart = true;
-					CavaE.GlobalObjet.EventKey = {
+					CavaE.GlobalObject.EventKey = {
 						code : event.keyCode,
 						value : String.fromCharCode(event.keyCode)
 					};
 					that._executeKeyActions('KEYUP');
 				});
 		// 监听键盘按住事件
-		CavaE.GlobalObjet.DOMTools.addListener(document.body,
-				CavaE.GlobalObjet.EventTypes.KEYPRESS, function(event) {
+		CavaE.GlobalObject.DOMTools.addListener(document.body,
+				CavaE.GlobalObject.EventTypes.KEYPRESS, function(event) {
 					if (that._keystart) {
 						return;
 					}
-					CavaE.GlobalObjet.EventKey = {
+					CavaE.GlobalObject.EventKey = {
 						code : event.keyCode,
 						value : String.fromCharCode(event.keyCode)
 					};
@@ -377,9 +412,9 @@ CavaE._Event.prototype = {
 		}		
 		//	封装事件对象x,y为当前鼠标位置,z为事件发生时间戳
 		var event = {
-			x : CavaE.GlobalObjet.MousePos.x,
-			y : CavaE.GlobalObjet.MousePos.y,
-			z : CavaE.GlobalObjet.MousePos.z
+			x : CavaE.GlobalObject.MousePos.x,
+			y : CavaE.GlobalObject.MousePos.y,
+			z : CavaE.GlobalObject.MousePos.z
 		};
 		//	在同一layer中的对象,只响应显示最顶层的
 		//	找出鼠标按下最顶层对象
@@ -445,7 +480,7 @@ CavaE._Event.prototype = {
 			var that = this;
 			setTimeout(function() {
 				that.inDoubleClickWindow = false;
-			}, CavaE.GlobalObjet.dblClickWindow);
+			}, CavaE.GlobalObject.dblClickWindow);
 		}
 	},	
 	/**
@@ -462,9 +497,9 @@ CavaE._Event.prototype = {
 			return;
 		}
 		var event = {
-			x : CavaE.GlobalObjet.MousePos.x,
-			y : CavaE.GlobalObjet.MousePos.y,
-			z : CavaE.GlobalObjet.MousePos.z
+			x : CavaE.GlobalObject.MousePos.x,
+			y : CavaE.GlobalObject.MousePos.y,
+			z : CavaE.GlobalObject.MousePos.z
 		};
 		//	在同一layer中的对象,只响应显示最顶层的
 		//	找出顶层鼠标移动衍生事件
@@ -511,9 +546,9 @@ CavaE._Event.prototype = {
 		}
 		//封装事件对象
 		var event = {
-			x : CavaE.GlobalObjet.MousePos.x,
-			y : CavaE.GlobalObjet.MousePos.y,
-			z : CavaE.GlobalObjet.MousePos.z
+			x : CavaE.GlobalObject.MousePos.x,
+			y : CavaE.GlobalObject.MousePos.y,
+			z : CavaE.GlobalObject.MousePos.z
 		};
 		//拖拽操作可能导致鼠标移出拖拽对象,当用户释放鼠标时,鼠标抬起事件不发生在拖拽对象的判定范围内.
 		//因此鼠标拖拽去除范围判定也去除层次判断
@@ -536,12 +571,12 @@ CavaE._Event.prototype = {
  * @constructor
  */
 CavaE.Widget = function() {
-	this.ID = CavaE.GlobalObjet.Func.generateUniqueID();	
+	this.ID = CavaE.GlobalObject.Func.generateUniqueID();	
 	// 所有包含的动作
 	this._actions = [];
 	// 是否已经存在在该类型的事件堆栈中
 	this._registered = {};
-	for ( var type in CavaE.GlobalObjet.baseEventTypes) {
+	for ( var type in CavaE.GlobalObject.baseEventTypes) {
 		this._registered[type] = false;
 	}
 	// 层属性，活跃层 active、稳定层 negtive、固定层 fixed 默认为negtive
@@ -562,13 +597,17 @@ CavaE.Widget = function() {
 		position : 'relative',// 相对定位:其锚点会继承父节点的锚点偏移absolute 绝对定位，锚点偏移根据STAGE(0,0)计算
 		rotate : undefined,// 角度除以π
 		alpha : undefined,
-		scale : undefined
+		scale : undefined,
+		offset : undefined, //用于旋转后再偏移等特殊情况
+		clipEnable : false //是否进行切割
 	};
 	// 描点，绘图偏移基准点
 	this.anchor = {
 		x : 0,
 		y : 0
-	};
+	};	
+	// 切割方法
+	this._clipFuncs = [];
 	// 绘制方法
 	this._drawFuncs = [];
 	// 事件包围盒
@@ -591,6 +630,14 @@ CavaE.Widget = function() {
 		dragStartOffsetWindow : 10
 	};
 	this._mousein = false;
+	//阴影设置
+	this.shadow = {
+		shadowDisplaying : false,
+		shadowColor : '#707070',
+		shadowOffsetX : 3,
+		shadowOffsetY : 3,
+		shadowBlur : 10
+	};
 };
 CavaE.Widget.prototype = {
 	/**
@@ -627,7 +674,7 @@ CavaE.Widget.prototype = {
 			var type = types[n];
 			var parts = type.split('.');
 			var baseEvent = parts[0];
-			for ( var eventType in CavaE.GlobalObjet.EventTypes) {
+			for ( var eventType in CavaE.GlobalObject.EventTypes) {
 				if (eventType == baseEvent) {
 					var name = parts.length > 1 ? parts[1] : '';
 					if (!this._actions[baseEvent]) {
@@ -692,7 +739,7 @@ CavaE.Widget.prototype = {
 							throw new Error('Expect eventBoundingBox!');
 						}
 						var that = this;
-						this.on('MOUSEDOWN._MOUSEDRAG', function(event) {
+						this.on('MOUSEDOWN._MOUSEDRAG', function(event) {							
 							that.dragOptions._dragStart = {
 								x : event.x,
 								y : event.y
@@ -701,8 +748,8 @@ CavaE.Widget.prototype = {
 						this.on('MOUSEUP._MOUSEDRAG', function(event) {
 							if (that.dragOptions._draging) {
 								that.backToNegtive();
-								that.stage.negtiveLayer.redraw();
-								that.stage.activeLayer.redraw();
+								that._stage.negtiveLayer.redraw();
+								that._stage.activeLayer.redraw();
 								that._executeAction('MOUSEDROP', event);
 							}
 							that.dragOptions._draging = false;
@@ -718,7 +765,7 @@ CavaE.Widget.prototype = {
 										if (-offsetWindow > Dx || Dx > offsetWindow || -10 > offsetWindow
 												|| Dy > offsetWindow) {
 											that.dragOptions._draging = true;
-											that.stage._event._draging = true;
+											that._stage._event._draging = true;
 											that._executeAction(
 													'MOUSEDRAGSTART', event);
 											that.moveToActive();
@@ -740,17 +787,17 @@ CavaE.Widget.prototype = {
 						this.tooltip = action; //TOOLTIP时用来显示文字
 						var that = this;
 						this.on('MOUSEIN._TOOLTIP', function (event) {
-							that.stage.tooltip.text = that.tooltip;
-							that.stage.tooltip.move(event.x,event.y);
-							that.stage.tooltip.show();							
+							that._stage.tooltip.text = that.tooltip;
+							that._stage.tooltip.move(event.x,event.y);
+							that._stage.tooltip.show();							
 						});
 						this.on('MOUSEOVER._TOOLTIP', function(event) {
-							that.stage.tooltip.move(event.x,event.y);
-							that.stage.activeLayer.redraw();
+							that._stage.tooltip.move(event.x,event.y);
+							that._stage.activeLayer.redraw();
 						});
 						this.on('MOUSEOUT._TOOLTIP',function(){
-							that.stage.tooltip.hide();
-							that.stage.activeLayer.redraw();
+							that._stage.tooltip.hide();
+							that._stage.activeLayer.redraw();
 						});
 					}
 					break;
@@ -804,8 +851,8 @@ CavaE.Widget.prototype = {
 								this.off('MOUSEUP._MOUSEDRAG');
 								this.off('MOUSEMOVE._MOUSEDRAG');
 							}
-							if (this.nodeStatus) {
-								this.stage._event.unregisterEventObject(
+							if (this._nodeStatus) {
+								this._stage._event.unregisterEventObject(
 										baseEvent, this);
 							}
 							break;
@@ -831,8 +878,8 @@ CavaE.Widget.prototype = {
 					this.off('MOUSEUP._MOUSEDRAG');
 					this.off('MOUSEMOVE._MOUSEDRAG');
 				}
-				if (this.nodeStatus) {
-					this.stage._event.unregisterEventObject(
+				if (this._nodeStatus) {
+					this._stage._event.unregisterEventObject(
 							baseEvent, this);
 				}
 			}
@@ -844,12 +891,16 @@ CavaE.Widget.prototype = {
 	 * @param {int} drawIndex 同一层面的绘制循序,数值越大zIndex越大
 	 */
 	draw : function(ctx, drawIndex) {		
-		if (this.displaying) {
+		if (this.displaying) {			
 			this._drawIndex = drawIndex.num++;
 			if (ctx == undefined) {
-				ctx = this.stage[this.layer + 'Layer'].context;
+				ctx = this._stage[this.layer + 'Layer'].context;
 			}
 			ctx.save();
+			this._shadow(ctx);
+			if(this.displayOptions.clipEnable) {
+				this._clip(ctx);
+			}
 			//判断是否进行拉伸操作
 			var x = this.anchor.x;
 			var y = this.anchor.y;
@@ -860,9 +911,13 @@ CavaE.Widget.prototype = {
 				y /= this.displayOptions.scale.y;
 			}
 			//以锚点为中心绘制
-			ctx.translate(x, y);
-			if (this.displayOptions.rotate !== undefined) {
-				ctx.rotate(this.displayOptions.rotate);
+			ctx.translate(x, y);			
+			if (this.displayOptions.rotate !== undefined) {				
+				ctx.rotate(Math.PI/180*this.displayOptions.rotate);
+			}
+			//处理旋转后特殊情况
+			if(this.displayOptions.offset !== undefined){
+				ctx.translate(this.displayOptions.offset.x,this.displayOptions.offset.y);
 			}
 			//是否需要进行透明度处理
 			if (this.displayOptions.alpha !== undefined) {
@@ -871,7 +926,7 @@ CavaE.Widget.prototype = {
 			//是否Container,如果是绘制子节点
 			if (this instanceof CavaE.Container) {
 				for ( var i = 0, len = this._children.length; i < len; i++) {
-					this._children[i].draw(ctx, this);
+					this._children[i].draw(ctx, drawIndex);
 				}
 			}
 			//调用绘制函数栈
@@ -883,7 +938,59 @@ CavaE.Widget.prototype = {
 		}
 	},
 	/**
-	 * drawFunc
+	 * _clip
+	 * 切割画布
+	 */
+	_clip : function (ctx) {
+		for ( var i=0,len = this._clipFuncs.length; i < len; i++) {
+			this._clipFuncs[i].method(ctx,this);
+		}
+	},
+	/**
+	 * addClipFunc
+	 * 给页面元素添加切割画布方法
+	 * @param {function} clipFunc 切割函数
+	 * @param {string} name 切割函数命名,默认为''
+	 * @param {int} priority 切割函数优先级,默认为0
+	 */
+	addClipFunc : function(clipFunc, name, priority) {
+		if (name === undefined) {
+			name = '';
+		}
+		if (priority === undefined) {
+			priority = 0;
+		}
+		var i = 0;
+		for ( var len = this._clipFuncs.length; i < len; i++) {
+			if (this._clipFuncs[i].priority > priority) {
+				break;
+			}
+		}
+		this._clipFuncs.splice(i, 0, {
+			method : clipFunc,
+			name : name,
+			priority : priority
+		});
+	},
+	/**
+	 * removeClipFunc
+	 * 移除指定绘制函数
+	 * @param {string} 切割函数名
+	 */
+	removeClipFunc : function(name) {
+		if (name === undefined) {
+			name = '';
+		}
+		for ( var i = 0; i < this._clipFuncs.length;) {
+			if (this._clipFuncs[i].name == name) {
+				this._clipFuncs.splice(i, 1);
+			} else {
+				i++;
+			}
+		}
+	},
+	/**
+	 * addDrawFunc
 	 * 给页面元素添加绘制方法
 	 * @param {function} drawFunc 绘制函数
 	 * @param {string} name 绘制函数命名,默认为''
@@ -960,10 +1067,10 @@ CavaE.Widget.prototype = {
 		if (this.getZIndex() == 0) {
 			return;
 		}
-		for ( var i = 0, len = this._parent._children.length; i < len; i++) {
-			if (this._parent._children[i].ID == this.ID) {
-				this._parent._children.splice(i, 1);
-				this._parent._children.push(this);
+		for ( var i = 0, len = this._stage[this.layer+'Layer']._children.length; i < len; i++) {
+			if (this._stage[this.layer+'Layer']._children[i].ID == this.ID) {
+				this._stage[this.layer+'Layer']._children.splice(i, 1);
+				this._stage[this.layer+'Layer']._children.push(this);
 				break;
 			}
 		}
@@ -1027,7 +1134,7 @@ CavaE.Widget.prototype = {
 		if (this.eventBoundingBox === undefined) {
 			return true;
 		}
-		var ctx = this.stage.eventLayer.context;
+		var ctx = this._stage.eventLayer.context;
 		ctx.save();
 		//是否有拉伸操作
 		var ax = this.anchor.x;
@@ -1044,7 +1151,7 @@ CavaE.Widget.prototype = {
 		if (this.displayOptions.rotate !== undefined) {
 			ctx.rotate(this.displayOptions.rotate);
 		}
-		if (CavaE.GlobalObjet.Func.isArray(this.eventBoundingBox)) {
+		if (CavaE.GlobalObject.Func.isArray(this.eventBoundingBox)) {
 			ctx.beginPath();
 			ctx.moveTo(this.eventBoundingBox[0].x, this.eventBoundingBox[0].y);
 			for ( var i = 1, len = this.eventBoundingBox.length; i < len; i++) {
@@ -1056,7 +1163,7 @@ CavaE.Widget.prototype = {
 				}
 			}
 			ctx.closePath();
-		} else if (CavaE.GlobalObjet.Func.isFunction(this.eventBoundingBox)) {
+		} else if (CavaE.GlobalObject.Func.isFunction(this.eventBoundingBox)) {
 			this.eventBoundingBox(ctx, this);
 		} else {
 			ctx = null;
@@ -1064,9 +1171,9 @@ CavaE.Widget.prototype = {
 		}
 		var result = ctx.isPointInPath(x, y);
 		//debug模式下,在event层显示事件包围盒
-		if (CavaE.GlobalObjet.debug) {
+		if (CavaE.GlobalObject.debug) {
 			ctx.clearRect(-this.anchor.x, -this.anchor.y,
-					this.stage.attrs.width, this.stage.attrs.height);
+					this._stage.attrs.width, this._stage.attrs.height);
 			ctx.lineWidth = 10;
 			ctx.strokeStyle = 'rgba(255,0,0,.8)';
 			ctx.stroke();
@@ -1213,36 +1320,53 @@ CavaE.Widget.prototype = {
 	 * 将页面元素移动到活跃层
 	 */
 	moveToActive : function() {
-		this._lastParent = this._parent;
+		var lastLayer = this.layer;
 		this._parent._remove(this);
-		this.stage.activeLayer._add(this);
+		this._stage[this.layer+'Layer']._remove(this);
+		this._stage.activeLayer._add(this);		
 		this.layer = 'active';
-		this.stage.activeLayer.redraw();
-		this.stage.negtiveLayer.redraw();
+		this._stage.activeLayer.redraw();
+		this._stage[lastLayer+'Layer'].redraw();		
 	},
 	/**
 	 * moveToAnimation
 	 * 将页面元素移动到动画层
 	 */
 	moveToAnimation : function() {
-		this._lastParent = this._parent;
+		var lastLayer = this.layer;
 		this._parent._remove(this);
-		this.stage.animationLayer._add(this);
+		this._stage[this.layer+'Layer']._remove(this);
+		this._stage.animationLayer._add(this);
 		this.layer = 'animation';
-		this.stage.negtiveLayer.redraw();
-		this.stage.playing = true;
+		this._stage.animationLayer.redraw();
+		this._stage[lastLayer+'Layer'].redraw();
+		this._stage.playing = true;		
 	},
 	/**
 	 * backToNegtive
 	 * 将页面元素退回到稳定层
 	 * @param {Container} newParent 指定新的父节点,如果不指定则其父为原来的父节点
 	 */
-	backToNegtive : function(newParent) {
-		this._parent._remove(this);
+	backToNegtive : function(newParent) {		
+		this._stage[this.layer+'Layer']._remove(this);
+		this._stage[this.layer+'Layer'].redraw();		
+		this.layer = 'negtive';
 		if (newParent === undefined) {
-			this._lastParent._add(this);
+			this._parent._add(this);
 		} else {
 			newParent._add(this);
+		}
+		this._stage.negtiveLayer.redraw();		
+	},
+	/**
+	 * 加载阴影
+	 */
+	_shadow :  function (ctx) {
+		if(this.shadow.shadowDisplaying) {
+			ctx.shadowColor = this.shadow.shadowColor;
+			ctx.shadowOffsetX = this.shadow.shadowOffsetX;
+			ctx.shadowOffsetY = this.shadow.shadowOffsetY;
+			ctx.shadowBlur = this.shadow.shadowBlur;
 		}
 	},
 	/**
@@ -1288,12 +1412,12 @@ CavaE.Widget.prototype = {
 	 * 当页面对象加入到显示列表时,向事件监听器注册
 	 */
 	_registerEventObject : function() {
-		var eventTypes = CavaE.GlobalObjet.baseEventTypes;
+		var eventTypes = CavaE.GlobalObject.baseEventTypes;
 		for ( var eventType in eventTypes) {
 			if (this._actions[eventType] === undefined) {
 				continue;
 			} else {
-				this.stage._event.registerEventObject(eventType, this);
+				this._stage._event.registerEventObject(eventType, this);
 				this._registered[eventType] = true;
 			}
 		}
@@ -1302,7 +1426,7 @@ CavaE.Widget.prototype = {
 		//如果页面对象包含子对象则注册子对象
 		if (this instanceof CavaE.Container) {
 			for ( var i = 0, len = this._children.length; i < len; i++) {
-				this._children[i].stage = this.stage;
+				this._children[i]._stage = this._stage;
 				this._children[i]._registerEventObject();
 			}
 		}
@@ -1315,17 +1439,17 @@ CavaE.Widget.prototype = {
 		var eventTypes = this._registered;
 		for ( var eventType in eventTypes) {
 			if (eventTypes[eventType] == true) {
-				this.stage._event.unregisterEventObject(eventType, this);
+				this._stage._event.unregisterEventObject(eventType, this);
 				this._registered[eventType] = false;
 			}
 		}
 		//修改节点状态为未加入显示列表
-		this.nodeStatus = false;
+		this._nodeStatus = false;
 		//如果页面对象包含子对象从监听器中移出子对象
 		if (this instanceof CavaE.Container || this instanceof CavaE.Stage) {
 			for ( var i = 0, len = this._children.length; i < len; i++) {
 				this._children[i]._unregisterEventObject();
-				this._children[i].stage = undefined;
+				this._children[i]._stage = undefined;
 			}
 		}
 	}	
@@ -1348,12 +1472,12 @@ CavaE.Container = function() {
 };
 CavaE.Container.prototype = {
 	/**
-	 * addWidget
+	 * add
 	 * 向容器内增加子节点
 	 * @param {Widget or Container} node
 	 */
-	addWidget : function(node) {
-		if (node.nodeStatus) {
+	add : function(node) {
+		if (node._nodeStatus) {
 			throw new Error('Widget already added to Stage');
 		}
 		//根据其显示层次添加
@@ -1365,8 +1489,8 @@ CavaE.Container.prototype = {
 		}
 		this._children.splice(i, 0, node);
 		node._parent = this;		
-		if (this.nodeStatus) {
-			node.stage = this.stage;
+		if (this._nodeStatus) {
+			node._stage = this._stage;
 			node._registerEventObject();
 			//	如果显示方式是相对显示,则继承其父的并改变其子节点的锚位置
 			if (node.position == 'relative') {
@@ -1375,17 +1499,17 @@ CavaE.Container.prototype = {
 		}
 	},
 	/**
-	 * removeWidget
+	 * remove
 	 * 向容器内增加子节点
 	 * @param {Widget or Container} node
 	 */
-	removeWidget : function(node) {
-		for ( var i = 0, len = this._children.length; i < len; i++) {
+	remove : function(node) {
+		for ( var i = 0;i < this._children.length; i++) {
 			if (this._children[i].ID == node.ID) {
 				this._children.splice(i, 1);
 			}
 		}
-		if (this.nodeStatus) {
+		if (this._nodeStatus) {
 			node._unregisterEventObject();
 		}
 	},
@@ -1402,8 +1526,8 @@ CavaE.Container.prototype = {
 				break;
 			}
 		}
-		children.splice(i, 0, node);
-		node._parent = this;
+		children.splice(i, 0, node);		
+		//node._parent = this;		
 	},
 	/**
 	 * _remove
@@ -1420,10 +1544,10 @@ CavaE.Container.prototype = {
 				i++;
 			}
 		}
-		node._parent = undefined;
+		//node._parent = undefined;
 	}
 };
-CavaE.GlobalObjet.Func.Extends(CavaE.Container, CavaE.Widget);
+CavaE.GlobalObject.Func.Extends(CavaE.Container, CavaE.Widget);
 /////////////////////////////////////////////////////////////////
 //						 舞台
 //舞台负责创建DOM元素,维护显示列表,事件监听,绘制层次
@@ -1433,6 +1557,7 @@ CavaE.GlobalObjet.Func.Extends(CavaE.Container, CavaE.Widget);
  * @constructor
  */
 CavaE.Stage = function(attrs) {
+	
 	CavaE.Container.apply(this, []);
 	if (this.attrs === undefined) {
 		this.attrs = {};
@@ -1446,10 +1571,16 @@ CavaE.Stage = function(attrs) {
 	this.attrs.y = 0;
 	this.attrs.z = 0;
 	// 默认为全屏大小
-	this.attrs.width = document.body.clientWidth;
-	this.attrs.height = document.body.clientHeight;
+	if(document.body != null ) {
+		this.attrs.width = document.body.clientWidth;
+		this.attrs.height = document.body.clientHeight;
+	}
+	
 	if (attrs !== undefined) {
-		CavaE.GlobalObjet.Func.mantle(this.attrs, attrs);
+		CavaE.GlobalObject.Func.mantle(this.attrs, attrs);
+	}
+	if(this.attrs.container == null) {
+		throw new Error('Cannot get document.body ,Call Stage Constructor in body onload Event!');
 	}
 	// 创建外层DIV
 	var shell = document.createElement('div');
@@ -1457,14 +1588,14 @@ CavaE.Stage = function(attrs) {
 	shell.id = this.ID;
 	with (shell.style) {
 		position = 'absolute';
-		top = this.attrs.x;
-		left = this.attrs.y;
+		top = this.attrs.y;
+		left = this.attrs.x;
 		zIndex = this.attrs.z;
 		width = this.attrs.width + 'px';
 		height = this.attrs.height + 'px';
 	};	
 	//用于递归调用
-	this.stage = this;
+	this._stage = this;
 	//创建4个Canvas层,事件响应层,显示层：活跃层，稳定层，固定层
 	this._layerIndex = 1000;
 	this.eventLayer = new CavaE.Layer(this);
@@ -1483,19 +1614,21 @@ CavaE.Stage = function(attrs) {
 };
 CavaE.Stage.prototype = {
 	/**
-	 * addWidget
+	 * add
 	 * 重载Container的方法,将节点加入到其所属的显示层次中
 	 * @param {Widget or Container} node
 	 * @exception 节点不能直接添加到活跃层和动画层
 	 * @exception 未定义层类型
 	 */
-	addWidget : function(node) {
-		if (node.nodeStatus) {
+	add : function(node) {
+		if (node._nodeStatus) {
 			throw new Error('Widget already added to Stage');
 		}
 		if (node.layer == 'fixed') {
+			node._parent = this.fixedLayer;
 			this.fixedLayer._add(node);
 		} else if (node.layer == 'negtive') {
+			node._parent = this.negtiveLayer;
 			this.negtiveLayer._add(node);
 		} else if (node.layer == 'active' || node.layer == 'animation') {
 			throw new Error(
@@ -1503,15 +1636,15 @@ CavaE.Stage.prototype = {
 		} else {
 			throw new Error('undefined layer!');
 		}
-		node.stage = this.stage;
+		node._stage = this._stage;
 		node._registerEventObject();
 	},
 	/**
-	 * removeWidget
+	 * remove
 	 * 重载Container方法,从stage中的显示层次中删除节点
 	 * @param {Widget or Container} node
 	 */
-	removeWidget : function(node) {
+	remove : function(node) {
 		if (node.layer == 'fixed') {
 			this.fixedLayer._remove(node);
 		} else if (node.layer == 'negtive') {
@@ -1596,8 +1729,8 @@ CavaE.Stage.prototype = {
 	}
 
 };
-CavaE.GlobalObjet.Func.Extends(CavaE.Stage, CavaE.Container);
-CavaE.GlobalObjet.Func.Extends(CavaE.Stage, CavaE.Widget);
+CavaE.GlobalObject.Func.Extends(CavaE.Stage, CavaE.Container);
+CavaE.GlobalObject.Func.Extends(CavaE.Stage, CavaE.Widget);
 /////////////////////////////////////////////////////////////////
 //					层
 //仅用于物理显示，提高运行速度与显示的层次没有关系
@@ -1608,13 +1741,13 @@ CavaE.GlobalObjet.Func.Extends(CavaE.Stage, CavaE.Widget);
  */
 CavaE.Layer = function(stage) {
 	CavaE.Container.apply(this, []);
-	this.stage = stage;
+	this._stage = stage;
 	// 是否显示
 	this.displaying = true;
 	// 是否响应事件
 	this.listening = true;
 	// 是否已加入stage
-	this.nodeStatus = true;
+	this._nodeStatus = true;
 	// 创建LAYER的CANVAS元素
 	var canvas = document.createElement('canvas');
 	canvas.id = this.ID;
@@ -1623,7 +1756,7 @@ CavaE.Layer = function(stage) {
 		position = 'absolute';
 		top = 0;
 		left = 0;
-		zIndex = this.stage._layerIndex--;
+		zIndex = this._stage._layerIndex--;
 	}
 	canvas.width = stage.attrs.width;
 	canvas.height = stage.attrs.height;
@@ -1643,7 +1776,7 @@ CavaE.Layer.prototype = {
 		var drawIndex = {
 			num : 0
 		};
-		ctx.clearRect(0, 0, this.stage.attrs.width, this.stage.attrs.height);
+		ctx.clearRect(0, 0, this._stage.attrs.width, this._stage.attrs.height);
 		for ( var i = 0, len = children.length; i < len; i++) {
 			if (children[i].displaying) {
 				children[i].draw(ctx, drawIndex);
@@ -1651,7 +1784,7 @@ CavaE.Layer.prototype = {
 		}
 	}
 };
-CavaE.GlobalObjet.Func.Extends(CavaE.Layer, CavaE.Container);
+CavaE.GlobalObject.Func.Extends(CavaE.Layer, CavaE.Container);
 /////////////////////////////////////////////////////////////////
 //				核心功能扩展
 /////////////////////////////////////////////////////////////////
@@ -1663,18 +1796,18 @@ CavaE.GlobalObjet.Func.Extends(CavaE.Layer, CavaE.Container);
 CavaE.ToolTip = function (stage){
 	CavaE.Widget.apply(this, []);
 	this._parent = stage;
-	this.stage = stage;
+	this._stage = stage;
 };
 CavaE.ToolTip.prototype = {
 	show : function (x,y) {
 		this.move(x,y);
 		this._lastParent = this._parent;
 		this._parent._remove(this);
-		this.stage.activeLayer._add(this);
+		this._stage.activeLayer._add(this);
 		this.layer = 'active';
 		this.displaying = true;
-		this.stage.activeLayer.redraw();
-		this.stage.negtiveLayer.redraw();
+		this._stage.activeLayer.redraw();
+		this._stage.negtiveLayer.redraw();
 	},
 	hide : function (newParent) {
 		this.displaying = false;
@@ -1685,7 +1818,59 @@ CavaE.ToolTip.prototype = {
 			newParent._add(this);
 		}
 		this.layer = 'negtive';
-		this.stage.activeLayer.redraw();		
+		this._stage.activeLayer.redraw();		
 	}	
 };
-CavaE.GlobalObjet.Func.Extends(CavaE.ToolTip, CavaE.Widget);
+CavaE.GlobalObject.Func.Extends(CavaE.ToolTip, CavaE.Widget);
+/**
+ *  TextWrap
+ *  @constructor
+ */
+CavaE.TextWrap = function () {
+	CavaE.Widget.apply(this, []);
+	this.text;
+	this.anchor = {x:0,y:0};
+	this.maxWidth;
+	this.lineHight;
+	this.clipEnable = false;
+	this._clipFunc = [];
+	this.shadow = {
+		shadowDisplaying : false,
+		shadowColor : '#707070',
+		shadowOffsetX : 3,
+		shadowOffsetY : 3,
+		shadowBlur : 10
+	};
+	this.font = {
+		style : 'normal', //normal | italic | oblique
+		weight : '400', //normal | bold | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
+		size : '14px',
+		family : '宋体'
+	};
+	this.wrapOptions = {
+		CHIndent : true,
+		AutoEnter : true		
+	};
+	this.addDrawFunc(CavaE.GlobalObject.Func.drawText);
+};
+CavaE.TextWrap.prototype = {	
+	_font : function () {
+		var font = this.font;
+		var result = "";
+		for(var fontSetting in font) {
+			if(font[fontSetting] !== undefined) {
+				result += ' '+font[fontSetting];
+			}
+		}
+		return result;
+	},
+	_shadow : function (ctx) {
+		if(this.shadow.shadowDisplaying) {
+			ctx.shadowColor = this.shadow.shadowColor;
+			ctx.shadowOffsetX = this.shadow.shadowOffsetX;
+			ctx.shadowOffsetY = this.shadow.shadowOffsetY;
+			ctx.shadowBlur = this.shadow.shadowBlur;
+		}
+	}
+};
+CavaE.GlobalObject.Func.Extends(CavaE.TextWrap, CavaE.Widget);
