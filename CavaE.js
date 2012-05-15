@@ -147,6 +147,15 @@ CavaE.GlobalObject = {
 		    }
 			ctx.fillText(line, x, y);
 			ctx.restore();
+		},
+		/**
+		 * Loader图片和视频加载完成后的回调函数
+		 */
+		loadedCallBack : function (object) {
+			object.loaded = true;
+			if(object.loader.checkLoaded()){
+				object.loader.callback();
+			};
 		}
 	},
 	/**
@@ -1573,7 +1582,7 @@ CavaE.Stage = function(attrs) {
 	// 默认为全屏大小
 	if(document.body != null ) {
 		this.attrs.width = document.body.clientWidth;
-		this.attrs.height = document.body.clientHeight;
+		this.attrs.height = document.body.scrollHeight;
 	}
 	
 	if (attrs !== undefined) {
@@ -1786,6 +1795,34 @@ CavaE.Layer.prototype = {
 };
 CavaE.GlobalObject.Func.Extends(CavaE.Layer, CavaE.Container);
 /////////////////////////////////////////////////////////////////
+//					自定义事件
+/////////////////////////////////////////////////////////////////
+CavaE.CustomEvent = function (eventName) {
+	this.ID = CavaE.GlobalObject.Func.generateUniqueID;
+	this.eventName = eventName;
+	this.monitored = [];	
+}
+CavaE.CustomEvent.prototype = {
+	add : function (node,method) {
+		this.monitored.push({
+			node : node,
+			method : method
+		});
+	},
+	remove : function (node) {
+		for ( var i = 0; i < this.monitored.length; i++) {
+			if (this.monitored[i].node.ID == node.ID) {
+				this.monitored.splice(i, 1);
+			}
+		}
+	},
+	triger : function () {
+		for(var i=0,len=this.monitored.length;i<len;i++) {
+			this.monitored[i].method(this.monitored[i].node);
+		}
+	}
+};
+/////////////////////////////////////////////////////////////////
 //				核心功能扩展
 /////////////////////////////////////////////////////////////////
 /**
@@ -1874,3 +1911,79 @@ CavaE.TextWrap.prototype = {
 	}
 };
 CavaE.GlobalObject.Func.Extends(CavaE.TextWrap, CavaE.Widget);
+/////////////////////////////////////////////////////////////////
+//				LOADING模块
+//	满足当所有注册的图片和视频都加载完成后,再创建场景
+/////////////////////////////////////////////////////////////////
+/**
+ * 读取器
+ */
+CavaE.Loader = function (callback) {
+	this.ID = CavaE.GlobalObject.Func.generateUniqueID();
+	this.objects = [];	
+	if(CavaE.GlobalObject.Func.isFunction(callback)){
+		this.callback = callback;
+	} else if (CavaE.GlobalObject.Func.isString(callback)) {
+		this.callback = function () {
+			eval(callback);
+		};
+	}
+};
+CavaE.Loader.prototype = {
+	add : function (object) {
+		this.objects.push(object);
+		object.loader = this;
+	},
+	load : function () {
+		for(var i=0,len=this.objects.length;i<len;i++) {
+			this.objects[i].load();
+		}		
+	},
+	checkLoaded : function () {
+		for(var i=0,len=this.objects.length;i<len;i++) {
+			if(this.objects[i].loaded == false) {
+				return false;
+			}
+		}		
+		return true;
+	}
+};
+/**
+*	图片读取
+*/
+CavaE.Image = function (src) {
+	this.ID = CavaE.GlobalObject.Func.generateUniqueID();
+	this.src = src;
+	this.img = new Image();
+	this.loader = null;
+	this.loaded = false;
+};
+CavaE.Image.prototype = {
+	load : function () {
+		this.img.src = this.src;
+		this.img.onload = CavaE.GlobalObject.Func.loadedCallBack(this);
+	}
+};
+/**
+*	视频读取
+*/
+CavaE.Video = function (src) {
+	this.ID = CavaE.GlobalObject.Func.generateUniqueID();
+	this.src = src;
+	this.v = document.createElement('video');	
+	this.loader = null;
+	this.loaded = false;
+	//document.getElementById('test1').appendChild(this.v);	
+};
+CavaE.Video.prototype = {
+	load : function () {
+		this.v.src = this.src;
+		this.v.addEventListener('loadedmetadata',CavaE.GlobalObject.Func.loadedCallBack(this),false);
+	},
+	play : function () {
+	  	this.v.play();
+	},
+	pause : function () {
+		this.v.pause();
+	}
+};

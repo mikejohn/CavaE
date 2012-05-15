@@ -1,83 +1,93 @@
 /**
+ * pointObject {x: int Number,y:int Number} 
+ */
+/**
  * @constructor
- * @param options 初始化参数 
- * 		Object DIV {leftTop:左上角绝对坐标,width:宽,height:高}
- * 		Object PAGE {width:页宽,height:页高,pagespan:左右页间距}
- * 		Object ANIMATE {framing:翻页动画效果帧率,pagingTime:动作完成后,动画播放时间}
+ * @param options initializeParameters
+ * 		Object DIV {leftTop:pointObject,width:int number,height:int number}
+ * 		Object PAGE {width:int number,height:int number,pagespan:int number}
+ * 		Object ANIMATE {framing:Paging Animation play frame,pagingTime:Paging Animation play duration}
  * @returns {EMaga}
  */
 
-EMaga = function (options) {	
-	//默认DIV是全屏显示
+EMaga = function (options) {
+	//outter DIV position parameters
 	this.DIVPos = {
-		leftTop : {x:0,y:0},  //由用户指定,默认为屏幕左上顶点
-		width : document.body.width,//由用户指定,默认为BODY宽
-		height : document.body.height//由用户指定,默认为BODY高
+		leftTop : {x:0,y:0},  //leftTop point pointOjbect
+		width : document.body.width,//default equal body width
+		height : document.body.height//default equal body height
 	};
-	if(options.DIV !== undefined) {		
-		CavaE.GlobalObject.Func.mantle(this.DIVPos,options.DIV);
+	if(options !== undefined) {
+		if(options.DIV !== undefined) {		
+			CavaE.GlobalObject.Func.mantle(this.DIVPos,options.DIV);
+		}
 	}
-	//默认PAGE大小是DIV的80%
-	//默认两页中间距离为0
+	//left&rightPage Common position parameters
 	this.PAGEPos = {
-		pagespan : 0,//两页中间间距,由用户指定,默认为0
-		width : .4* this.DIVPos.width,//由用户指定,默认为外层DIV宽的80%(含中间距)
-		height : .8* this.DIVPos.height//由用户指定,默认为外层DIV高的80%			
+		pagespan : 0,//distance between left page and right page
+		width : .4* this.DIVPos.width,//single page width default 40% body width
+		height : .8* this.DIVPos.height//single page height default 80% body height			
 	};
-	if(options.PAGE !== undefined) {
-		CavaE.GlobalObject.Func.mantle(this.PAGEPos,options.PAGE);
+	if(options !== undefined) {
+		if(options.PAGE !== undefined) {
+			CavaE.GlobalObject.Func.mantle(this.PAGEPos,options.PAGE);
+		}
 	}
-	//一下参数由用户指定数据计算得出
-	//四边间距
+	//padding
 	this.PAGEPos.paddingTop = (this.DIVPos.height - this.PAGEPos.height)/2;
 	this.PAGEPos.paddingBottom = (this.DIVPos.height - this.PAGEPos.height)/2;
 	this.PAGEPos.paddingLeft = (this.DIVPos.width - this.PAGEPos.width*2 - this.PAGEPos.pagespan)/2;
 	this.PAGEPos.paddingRight = (this.DIVPos.width - this.PAGEPos.width*2 - this.PAGEPos.pagespan)/2;
-	//四角顶点
+	//book
 	this.PAGEPos.leftTop = {x:this.PAGEPos.paddingLeft,y:this.PAGEPos.paddingTop};
 	this.PAGEPos.rightTop = {x:this.PAGEPos.paddingLeft + this.PAGEPos.width*2+this.PAGEPos.pagespan,y:this.PAGEPos.paddingTop};
 	this.PAGEPos.leftBottom = {x:this.PAGEPos.paddingLeft,y:this.PAGEPos.paddingTop + this.PAGEPos.height};
 	this.PAGEPos.rightBottom = {x:this.PAGEPos.paddingLeft + this.PAGEPos.width*2+this.PAGEPos.pagespan,y:this.PAGEPos.paddingTop + this.PAGEPos.height};
-	//上下边中间点
 	this.PAGEPos.middleTop = {x:this.PAGEPos.paddingLeft + this.PAGEPos.width + this.PAGEPos.pagespan/2,y:this.PAGEPos.paddingTop};
 	this.PAGEPos.middleBottom = {x:this.PAGEPos.paddingLeft + this.PAGEPos.width + this.PAGEPos.pagespan/2,y:this.PAGEPos.paddingTop + this.PAGEPos.height};
-	//左页顶点
+	//leftPage position
 	this.leftPagePos = {
 		leftTop : {x:this.PAGEPos.paddingLeft,y:this.PAGEPos.paddingTop},
 		rightTop : {x:this.PAGEPos.paddingLeft + this.PAGEPos.width,y:this.PAGEPos.paddingTop},
 		leftBottom : {x:this.PAGEPos.paddingLeft,y:this.PAGEPos.paddingTop + this.PAGEPos.height},
 		rightBottom : {x:this.PAGEPos.paddingLeft + this.PAGEPos.width,y:this.PAGEPos.paddingTop + this.PAGEPos.height}
 	};
-	//右页顶点
+	//rightPage position
 	this.rightPagePos = {
 		leftTop : {x:this.PAGEPos.rightTop.x - this.PAGEPos.width,y:this.PAGEPos.paddingTop},
 		rightTop : {x:this.PAGEPos.rightTop.x,y:this.PAGEPos.paddingTop},
 		leftBottom : {x:this.PAGEPos.rightTop.x - this.PAGEPos.width,y:this.PAGEPos.paddingTop + this.PAGEPos.height},
 		rightBottom : {x:this.PAGEPos.rightTop.x,y:this.PAGEPos.paddingTop + this.PAGEPos.height}
 	};
-	this._pages = [];//存放所有PAGE对象
-	this._pageIndex = 0;//当前显示右页页码
+	this._pages = [];//array of all pages
+	this._pageIndex = 0;//current page number of right page
 	this.ANIMATE = {
-		framing : 1000/60,//翻页动画播放帧率
-		pagingTime : 500 //翻页动画播放时间
+		framing : 1000/60,//Paging Animation play frame
+		pagingTime : 500 //Paging Animation play duration
 	};
-	if(options.ANIMATE !== undefined) {
-		CavaE.GlobalObject.Func.mantle(this.ANIMATE,options.ANIMATE);
+	if(options !== undefined) {
+		if(options.ANIMATE !== undefined) {
+			CavaE.GlobalObject.Func.mantle(this.ANIMATE,options.ANIMATE);
+		}
 	}
-	//绘图参数
-	this.A = undefined;//与左右边交点
-	this.B = undefined;//与上下边交点
-	this.M = undefined;//拖拽页角移动点
-	this._paging = false;//是否正在翻页
+	//computing parameters
+	this.A = undefined;//crosspoint with up down border
+	this.B = undefined;//crosspoint with left right border
+	this.M = undefined;//currrent ctrl point
+	this._paging = false;//isPaing flag	
+	this.shadow = {
+		width : 200
+	};
+	this._shadow = undefined;
 	this.animationID = undefined;
 	this.currentCtrlPoint = undefined;
 	var that = this;
 	/**
-	 * 初始化舞台
+	 * create stage object
 	 */	
-	this._stage = new CavaE.Stage({width:this.DIVPos.width,height:this.DIVPos.height,x:this.PAGEPos.leftTop.x,y:this.PAGEPos.leftTop.y});
+	this._stage = new CavaE.Stage({width:this.DIVPos.width,height:this.DIVPos.height,x:this.DIVPos.leftTop.x,y:this.DIVPos.leftTop.y});
 	/**
-	 * 翻页三角函数计算
+	 * compute paging parameters
 	 */
 	var computePaging = function (M) {
 		var point = null;
@@ -155,15 +165,27 @@ EMaga = function (options) {
 					break;				
 			}			
 		}
-		return {xa:x1,ya:ya,xb:xb,yb:y1,yback:yback,xback:xback,sback:sback};
+		//compute shadow effect
+		var shadow = {};	
+		if(x0 - x1 == 0) {
+			var a = 0;
+		} else {
+			var a= Math.atan((y0-y1)/(x0-x1));	
+		}		
+		var xm = (x0+x1)/2;
+		var ym = (y0+y1)/2;
+		shadow.width = that.shadow.width - Math.abs(that.shadow.width*(x0 - that.PAGEPos.middleTop.x)/(that.PAGEPos.width+that.PAGEPos.pagespan/2));
+		shadow.xg1 = xm + Math.cos(a)*shadow.width/2;
+		shadow.yg1 = ym + Math.sin(a)*shadow.width/2;
+		shadow.xg2 = xm - Math.cos(a)*shadow.width/2;
+		shadow.yg2 = ym - Math.sin(a)*shadow.width/2;						
+		return {xa:x1,ya:ya,xb:xb,yb:y1,yback:yback,xback:xback,sback:sback,shadow:shadow};
 	};
+	
 	/**
-	 * 4个翻页点翻页方法
-	 */
-	/**
-	 * 翻页开始方法
-	 * 1.判断翻页动画是否执行完成,如果没有完成结束翻页动画;
-	 * 2.
+	 * paging start
+	 * 1.cancel current animation
+	 * 2.set currentCtrlPoint equal to ctrlPointName
 	 */
 	var pagingStart = function (event) {				
 		if(that.animationID !== undefined) {
@@ -174,10 +196,8 @@ EMaga = function (options) {
 		}
 	};
 	/**
-	 * 翻页过程方法
-	 * 1.需要知道用户拖拽的是哪个控制点
-	 * 2.根据不同控制点得出相对点坐标
-	 * 3.计算出A,B,M,BACK点坐标
+	 * Paging
+	 * 
 	 */
 	var Paging = function (event) {		
 		var tempM = {x:event.target.anchor.x,y:event.target.anchor.y};		
@@ -193,6 +213,7 @@ EMaga = function (options) {
 					that.M = {x:that._ltPoint.anchor.x,y:that._ltPoint.anchor.y};
 					that.A = tempA;
 					that.B = tempB;
+					that._shadow = result.shadow;
 				}
 				if(!that._paging) {			
 					animationInit(event.target);
@@ -209,6 +230,7 @@ EMaga = function (options) {
 					that.M = {x:that._lbPoint.anchor.x,y:that._lbPoint.anchor.y};
 					that.A = tempA;
 					that.B = tempB;
+					that._shadow = result.shadow;
 				}
 				if(!that._paging) {			
 					animationInit(event.target);
@@ -225,6 +247,7 @@ EMaga = function (options) {
 					that.M = {x:that._rbPoint.anchor.x,y:that._rbPoint.anchor.y};;
 					that.A = tempA;
 					that.B = tempB;
+					that._shadow = result.shadow;
 				}		
 				if(!that._paging) {			
 					animationInit(event.target);
@@ -240,6 +263,7 @@ EMaga = function (options) {
 					that.M = {x:that._rtPoint.anchor.x,y:that._rtPoint.anchor.y};
 					that.A = tempA;
 					that.B = tempB;
+					that._shadow = result.shadow;
 				}
 				if(!that._paging) {			
 					animationInit(event.target);
@@ -248,18 +272,10 @@ EMaga = function (options) {
 				that.rightPage.backPage.move(result.xback-that.PAGEPos.width - that.PAGEPos.paddingLeft - that.PAGEPos.pagespan,result.yback-that.PAGEPos.paddingTop);	
 				that.rightPage.backPage.displayOptions.rotate = result.sback;
 				break;
-		};
-//		var ctx = that._stage.eventLayer.context;
-//		ctx.clearRect(0,0,that.DIVPos.width,that.DIVPos.height);
-//		ctx.beginPath();
-//		ctx.moveTo(that.M.x,that.M.y);
-//		ctx.lineTo(that.A.x,that.A.y);
-//		ctx.lineTo(that.B.x,that.B.y);
-//		ctx.closePath();
-//		ctx.stroke();		
+		};	
 	};
 	/**
-	 * 翻页结束
+	 * pagingRelease
 	 */
 	var pagingRelease = function (event) {
 		switch (event.target.name) {
@@ -295,22 +311,26 @@ EMaga = function (options) {
 		};		
 	};
 	/**
-	 * 翻页动作初始化
+	 * animationInit
 	 */
 	var animationInit = function (ctrlPoint) {
 		var leftOrRight = undefined;
 		switch (ctrlPoint.name) {
 			case 'leftTop' :
 				leftOrRight = true;
+				that.pageShadow.point = that.leftPagePos.leftTop;
 				break;
 			case 'rightTop' :
 				leftOrRight = false;
+				that.pageShadow.point = that.rightPagePos.rightTop;
 				break;
 			case 'leftBottom' :
 				leftOrRight = true;
+				that.pageShadow.point = that.leftPagePos.leftBottom;
 				break;
 			case 'rightBottom' :
 				leftOrRight = false;
+				that.pageShadow.point = that.rightPagePos.rightBottom;
 				break;
 		}
 		if(leftOrRight) {
@@ -340,15 +360,19 @@ EMaga = function (options) {
 			that.leftPage.moveToActive();
 			ctrlPoint.moveTop();			
 		}
+		//shadow init
+		that.pageShadow.moveToActive();
+		that.pageShadow.moveTop();
+		that.pageShadow.displaying = true;
 	};
 	/**
-	 * 翻页动画
-	 * @param Object ctrlPoint 翻页控制点
-	 * @param Object targetPosition 动画目标坐标
-	 * @param String pagingDirection 翻页方向
+	 * animation
+	 * @param Object ctrlPoint 
+	 * @param Object targetPosition 
+	 * @param String pagingDirection 
 	 */
 	var animation = function (ctrlPoint,targetPosition,pagingDirection) {
-		//屏蔽其他控制点监听事件
+		//set ctrl Point listening		
 		for(var i=0,len=that._ctrlPoint._children.length;i<len;i++){
 			that._ctrlPoint._children[i].listening = false;
 		}
@@ -356,7 +380,7 @@ EMaga = function (options) {
 		ctrlPoint.moveToAnimation();
 		that.leftPage.moveToAnimation();
 		that.rightPage.moveToAnimation();
-		//计算每帧动画步长		
+		//move the ctrlPoint to target position	
 		var vx = (targetPosition.x - ctrlPoint.anchor.x)/that.ANIMATE.pagingTime * that.ANIMATE.framing;
 		var vy = (targetPosition.y - ctrlPoint.anchor.y)/that.ANIMATE.pagingTime * that.ANIMATE.framing;		
 		var animate = function () {
@@ -415,8 +439,7 @@ EMaga = function (options) {
 			that._stage.stop();
 			clearInterval(that.animationID);
 			that.animationID = undefined;			
-			that._paging = false;
-			//console.log('animateEnd');			
+			that._paging = false;				
 			for(var i=0,len=that._ctrlPoint._children.length;i<len;i++){
 				that._ctrlPoint._children[i].listening = true;
 			}
@@ -424,6 +447,13 @@ EMaga = function (options) {
 				that.next(that._pageIndex+2);
 			} else if(pagingDirection == 'previous'){
 				that.next(that._pageIndex-2);				
+			}
+			if(that._pageIndex == that._pages.length || that._pageIndex+1 == that._pages.length) {
+				that._rtPoint.listening =false;
+				that._rbPoint.listening =false;
+			} else if(that._pageIndex == 0) {
+				that._ltPoint.listening =false;
+				that._lbPoint.listening =false;
 			}
 			that.rightPage.currentPage.displayOptions.clipEnable = false;
 			that.rightPage.backPage.displayOptions.clipEnable = false;
@@ -444,13 +474,17 @@ EMaga = function (options) {
 			that.rightPage.currentPage.addClipFunc(rightPageNextChipMethod,'rightBack');
 			ctrlPoint.backToNegtive();
 			that.leftPage.backToNegtive();
-			that.rightPage.backToNegtive();			
+			that.rightPage.backToNegtive();		
+			
+			//handle shadow
+			that.pageShadow.backToNegtive();
+			that.pageShadow.displaying = false;
 			that._stage.negtiveLayer.redraw();
 		};		
 		that._stage.play();		
 	};	
 	/**
-	 * 默认控制点画法
+	 * draw ctrl point
 	 */
 	var ctrlPointDrawing = function (ctx,self) {
 		ctx.save();
@@ -462,7 +496,7 @@ EMaga = function (options) {
 		ctx.restore();
 	};	
 	/**
-	 * 默认控制点包围盒方法
+	 * draw ctrl point boundingbox
 	 */
 	var ctrlPointBoundingBox = function (ctx,self) {
 		ctx.save();
@@ -472,7 +506,7 @@ EMaga = function (options) {
 		ctx.restore();
 	};
 	/**
-	 * 拖拽范围
+	 * ctrl point dragBorder
 	 */
 	var dragBorder = {
 		top : this.PAGEPos.leftTop.y+1,
@@ -532,13 +566,12 @@ EMaga = function (options) {
 	
 	this._stage.add(this._ctrlPoint);
 	/**
-	 * 左页
+	 * leftpage
 	 */
-	//左边的页
+	//container
 	this.leftPage = new CavaE.Container();
 	this.leftPage.move(this.leftPagePos.leftTop.x,this.leftPagePos.leftTop.y);	
-	//左页的内容
-	//左页当前页
+	//leftpage currentpage	
 	this.leftPage.currentPage = new CavaE.Container();
 	var leftPagePreviousChipMethod = function (ctx) {		
 		switch (that.currentCtrlPoint) {
@@ -597,7 +630,7 @@ EMaga = function (options) {
 	this.leftPage.add(this.leftPage.currentPage);
 	
 	
-	//左页背页
+	//leftPage backPage
 	this.leftPage.backPage = new CavaE.Container();
 	this.leftPage.backPage.displaying = false;
 	this.leftPage.backPage.addClipFunc(function (ctx) {		
@@ -609,7 +642,7 @@ EMaga = function (options) {
 		ctx.clip();
 	});
 	this.leftPage.add(this.leftPage.backPage);
-	//左页底页
+	//leftPage bottomPage
 	this.leftPage.bottomPage = new CavaE.Container();
 	this.leftPage.bottomPage.displaying = false;
 	this.leftPage.bottomPage.addClipFunc(function (ctx) {		
@@ -623,12 +656,11 @@ EMaga = function (options) {
 	this.leftPage.add(this.leftPage.bottomPage);		
 	this._stage.add(this.leftPage);
 		
-	//右边的页
+	//rightPage
+	//container
 	this.rightPage = new CavaE.Container();
 	this.rightPage.move(this.rightPagePos.leftTop.x,this.rightPagePos.leftTop.y);	
-	//右页的内容
-	//右页当前页
-	
+	// rightpage currentPage
 	var rightPageNextChipMethod = function (ctx) {		
 		switch (that.currentCtrlPoint) {
 			case 'rightBottom' :				
@@ -686,7 +718,7 @@ EMaga = function (options) {
 	this.rightPage.currentPage = new CavaE.Container();
 	this.rightPage.currentPage.addClipFunc(rightPageNextChipMethod,'rightBack');
 	this.rightPage.add(this.rightPage.currentPage);
-	//右页背页
+	//rightPage backPage
 	this.rightPage.backPage = new CavaE.Container();
 	this.rightPage.backPage.displaying = false;
 	this.rightPage.backPage.addClipFunc(function (ctx) {
@@ -698,7 +730,7 @@ EMaga = function (options) {
 		ctx.clip();
 	});
 	this.rightPage.add(this.rightPage.backPage);
-	//右页底页
+	//rightPage bottomPage
 	this.rightPage.bottomPage = new CavaE.Container();
 	this.rightPage.bottomPage.displaying = false;
 	this.rightPage.bottomPage.addClipFunc(function (ctx) {		
@@ -712,23 +744,44 @@ EMaga = function (options) {
 	this.rightPage.add(this.rightPage.bottomPage);		
 	this._stage.add(this.rightPage);	
 	
-	//空白页
+	//blankPage
 	this._blankPage = new CavaE.Widget();
 	this._stage.init();
+	//shadow
+	this.pageShadow = new CavaE.Widget();
+	this.pageShadow.addDrawFunc (function(ctx,self) {
+		ctx.beginPath();
+		ctx.moveTo(that.B.x,that.B.y);
+		ctx.lineTo(that.M.x,that.M.y);
+		ctx.lineTo(that.A.x,that.A.y);
+		ctx.lineTo(self.point.x,self.point.y);	
+		ctx.closePath();
+		ctx.clip();
+		ctx.beginPath();
+		ctx.lineWidth = that._shadow.width;
+		ctx.moveTo(that.B.x,that.B.y);
+		ctx.lineTo(that.A.x,that.A.y);
+		var gradient = ctx.createLinearGradient(that._shadow.xg1,that._shadow.yg1,that._shadow.xg2,that._shadow.yg2);
+		gradient.addColorStop(0,'rgba(220,220,220,.2)');
+		gradient.addColorStop(.5,'rgba(120,120,120,.2)');
+		gradient.addColorStop(.51,'rgba(255,255,255,.2)');
+		gradient.addColorStop(.53,'rgba(255,255,255,.2)');
+		gradient.addColorStop(.54,'rgba(30,30,30,.2)');
+		gradient.addColorStop(1,'rgba(180,150,150,.2)');
+		ctx.strokeStyle = gradient;
+		ctx.stroke();
+		ctx.closePath();	
+	});
+	this.pageShadow.name = 'shadow';
+	this.pageShadow.displaying = false;
+	this._stage.add(this.pageShadow);
 };
 EMaga.prototype = {		
 	addPage : function (page) {		
 		this._pages.push(page);
 		page.index = this._pages.length-1;	
 	},
-	next : function (index) {	
-		if(index == this._pages.length || index+1 == this._pages.length) {
-			this._rtPoint.listening =false;
-			this._rbPoint.listening =false;
-		} else if(index == 0) {
-			this._ltPoint.listening =false;
-			this._lbPoint.listening =false;
-		}
+	next : function (index) {			
 		this._clearPage(this.rightPage.currentPage);
 		this._clearPage(this.rightPage.backPage);
 		this._clearPage(this.rightPage.bottomPage);
